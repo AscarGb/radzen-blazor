@@ -43,6 +43,13 @@ namespace Radzen.Blazor
         public Action<DataGridCellRenderEventArgs<object>> CellRender { get; set; }
 
         /// <summary>
+        /// Gets or sets the footer template.
+        /// </summary>
+        /// <value>The footer template.</value>
+        [Parameter]
+        public RenderFragment FooterTemplate { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the selected items will be displayed as chips. Set to <c>false</c> by default.
         /// Requires <see cref="DropDownBase{T}.Multiple" /> to be set to <c>true</c>.
         /// </summary>
@@ -102,12 +109,12 @@ namespace Radzen.Blazor
         {
             if (Disabled)
                 return;
-#if NET5_0_OR_GREATER
+
             if (IsVirtualizationAllowed())
             {
                 await grid.RefreshDataAsync();
             }
-#endif
+
             await JSRuntime.InvokeVoidAsync(OpenOnFocus ? "Radzen.openPopup" : "Radzen.togglePopup", Element, PopupID, true);
 
             if (FocusFilterOnPopup)
@@ -320,22 +327,6 @@ namespace Radzen.Blazor
         /// <value>The maximum selected labels.</value>
         [Parameter]
         public int MaxSelectedLabels { get; set; } = 4;
-
-#if !NET5_0_OR_GREATER
-        /// <summary>
-        /// Gets or sets the page size.
-        /// </summary>
-        /// <value>The page size.</value>
-        [Parameter]
-        public int PageSize { get; set; } = 5;
-
-        /// <summary>
-        /// Gets or sets the total items count.
-        /// </summary>
-        /// <value>The total items count.</value>
-        [Parameter]
-        public int Count { get; set; }
-#endif
 
         /// <summary>
         /// Gets or sets the selected items text.
@@ -781,7 +772,6 @@ namespace Radzen.Blazor
 
         async Task RefreshAfterFilter()
         {
-#if NET5_0_OR_GREATER
             if (IsVirtualizationAllowed() && grid != null)
             {
                 if(string.IsNullOrEmpty(searchText))
@@ -814,7 +804,7 @@ namespace Radzen.Blazor
                     }
                 }
             }
-#endif
+
             StateHasChanged();
 
             if (!IsVirtualizationAllowed())

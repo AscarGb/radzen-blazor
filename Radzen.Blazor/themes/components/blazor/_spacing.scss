@@ -1,3 +1,8 @@
+// Reset <body> margins
+body {
+  margin: 0;
+}
+
 // Margins and Paddings
 @each $property, $shorthand in (margin: m, padding: p) {
   @each $gutter, $gutter-value in $rz-gutter-map {
@@ -84,7 +89,7 @@
         .rz-#{$shorthand}s-#{$breakpoint}-#{$gutter} {
           #{$property}-inline-start: #{$gutter-value} !important;
         }
-        .rz-#{$shorthand}s-#{$breakpoint}-#{$gutter} {
+        .rz-#{$shorthand}e-#{$breakpoint}-#{$gutter} {
           #{$property}-inline-end: #{$gutter-value} !important;
         }
       }

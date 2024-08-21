@@ -101,6 +101,24 @@ namespace Radzen.Blazor
                 await OpenPopup("Enter", false);
             }
         }
+        internal override async Task ClosePopup(string key)
+        {
+            bool of = false;
+
+            if (key == "Enter")
+            {
+                of = OpenOnFocus;
+                OpenOnFocus = false;
+            }
+
+            await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+
+            if (key == "Enter")
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.focusElement", UniqueID);
+                OpenOnFocus = of;
+            }
+        }
 
         /// <summary>
         /// Opens the popup.
@@ -176,6 +194,17 @@ namespace Radzen.Blazor
         private bool visibleChanged = false;
         private bool disabledChanged = false;
         private bool firstRender = true;
+
+        /// <inheritdoc />
+        protected override Task SelectAll()
+        {
+            if (ReadOnly)
+            {
+                return Task.CompletedTask;
+            }
+
+            return base.SelectAll();
+        }
 
         /// <inheritdoc />
         public override async Task SetParametersAsync(ParameterView parameters)
