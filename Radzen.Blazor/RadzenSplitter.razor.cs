@@ -128,6 +128,11 @@ namespace Radzen.Blazor
             if (Panes.Contains(pane))
             {
                 Panes.Remove(pane);
+                
+                if (UseGetIndex)
+                    UpdateIndexesViaDelegate();
+                else
+                    UpdateIndexes();
 
                 try
                 {
