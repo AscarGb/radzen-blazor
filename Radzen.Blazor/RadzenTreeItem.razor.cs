@@ -123,6 +123,12 @@ namespace Radzen.Blazor
         [Parameter]
         public string LabelCssClass { get; set; }
 
+        /// <summary>
+        /// Expanded callback
+        /// </summary>
+        [Parameter]
+        public EventCallback<(bool, RadzenTreeItem)> OnExpandChanged { get; set; }
+        
         internal List<RadzenTreeItem> items = new List<RadzenTreeItem>();
 
         internal void AddItem(RadzenTreeItem item)
@@ -182,6 +188,8 @@ namespace Radzen.Blazor
                     }
                 }
 
+                await OnExpandChanged.InvokeAsync((clientExpanded, this));
+                
                 return;
             }
 
@@ -192,6 +200,8 @@ namespace Radzen.Blazor
             {
                 await Expand();
             }
+            
+            await OnExpandChanged.InvokeAsync((clientExpanded, this));
         }
 
         internal async Task ExpandCollapse(bool value)
@@ -219,6 +229,8 @@ namespace Radzen.Blazor
                     });
                 }
             }
+            
+            await OnExpandChanged.InvokeAsync((clientExpanded, this));
         }
 
         async Task Expand()
