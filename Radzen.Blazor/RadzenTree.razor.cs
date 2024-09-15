@@ -233,6 +233,12 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<IEnumerable<object>> CheckedValuesChanged { get; set; }
 
+        /// <summary>
+        /// OnExpandChanged
+        /// </summary>
+        [Parameter]
+        public EventCallback<(bool, RadzenTreeItem)> OnExpandChanged { get; set; }
+        
         void RenderTreeItem(RenderTreeBuilder builder, object data, RenderFragment<RadzenTreeItem> template, Func<object, string> text, Func<object, bool> checkable,
             Func<object, bool> hasChildren, Func<object, bool> expanded, Func<object, bool> selected, IEnumerable children = null)
         {
@@ -244,6 +250,7 @@ namespace Radzen.Blazor
             builder.AddAttribute(5, nameof(RadzenTreeItem.Template), template);
             builder.AddAttribute(6, nameof(RadzenTreeItem.Expanded), expanded(data));
             builder.AddAttribute(7, nameof(RadzenTreeItem.Selected), Value == data || selected(data));
+            builder.AddAttribute(8, nameof(RadzenTreeItem.OnExpandChanged), OnExpandChanged);
             builder.SetKey(data);
         }
 
