@@ -140,8 +140,8 @@ namespace Radzen.Blazor
 
             if (Groups.Any())
             {
-                query = view.AsQueryable().OrderBy(Groups.Any() ? string.Join(',', Groups.Select(g => $"{(typeof(TItem) == typeof(object) ? g.Property : "np(" + g.Property + ")")}")) : "it");
-                _groupedPagedView = query.GroupByMany(Groups.Any() ? Groups.Select(g => $"{(typeof(TItem) == typeof(object) ? g.Property : "np(" + g.Property + ")")}").ToArray() : new string[] { "it" }).ToList();
+                query = view.AsQueryable().OrderBy(DynamicLinqCustomTypeProvider.ParsingConfig, Groups.Any() ? string.Join(',', Groups.Select(g => $"{(typeof(TItem) == typeof(object) ? g.Property : "np(" + g.Property + ")")}")) : "it");
+                _groupedPagedView = query.GroupByMany(DynamicLinqCustomTypeProvider.ParsingConfig, Groups.Any() ? Groups.Select(g => $"{(typeof(TItem) == typeof(object) ? g.Property : "np(" + g.Property + ")")}").ToArray() : new string[] { "it" }).ToList();
 
                 totalItemsCount = await Task.FromResult(_groupedPagedView.Count());
             }
@@ -341,7 +341,7 @@ namespace Radzen.Blazor
                     var orderBy = GetOrderBy();
                     var query = Groups.Count(g => g.SortOrder == null) == Groups.Count || !string.IsNullOrEmpty(orderBy) ? View : View.OrderBy(DynamicLinqCustomTypeProvider.ParsingConfig, string.Join(',', Groups.Select(g => $"{(typeof(TItem) == typeof(object) ? g.Property : "np(" + g.Property + ")")} {(g.SortOrder == null ? "" : g.SortOrder == SortOrder.Ascending ? " asc" : " desc")}")));
                     var v = (AllowPaging && !LoadData.HasDelegate ? query.Skip(skip).Take(PageSize) : query).ToList().AsQueryable();
-                    _groupedPagedView = v.GroupByMany(Groups.Select(g => $"{(typeof(TItem) == typeof(object) ? g.Property : "np(" + g.Property + ")")}").ToArray()).ToList();
+                    _groupedPagedView = v.GroupByMany(DynamicLinqCustomTypeProvider.ParsingConfig, Groups.Select(g => $"{(typeof(TItem) == typeof(object) ? g.Property : "np(" + g.Property + ")")}").ToArray()).ToList();
                 }
                 return _groupedPagedView;
             }
@@ -484,11 +484,20 @@ namespace Radzen.Blazor
         }
 
         /// <summary>
+        /// Gets or sets key down callback.
+        /// </summary>
+        /// <value>The key down callback.</value>
+        [Parameter]
+        public EventCallback<KeyboardEventArgs> KeyDown { get; set; }
+
+        /// <summary>
         /// Handles the <see cref="E:KeyDown" /> event.
         /// </summary>
         /// <param name="args">The <see cref="KeyboardEventArgs"/> instance containing the event data.</param>
         protected virtual async Task OnKeyDown(KeyboardEventArgs args)
         {
+            await KeyDown.InvokeAsync(args);
+
             var key = args.Code != null ? args.Code : args.Key;
 
             if (key == "ArrowDown" || key == "ArrowUp" || key == "ArrowLeft" || key == "ArrowRight")
@@ -1462,49 +1471,49 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The remove group button aria label text.</value>
         [Parameter]
-        public string RemoveGroupArialLabel { get; set; } = "Remove group";
+        public string RemoveGroupAriaLabel { get; set; } = "Remove group";
 
         /// <summary>
         /// Gets or sets the select visible columns aria label text.
         /// </summary>
         /// <value>The select visible columns aria label text.</value>
         [Parameter]
-        public string SelectVisibleColumnsArialLabel { get; set; } = "select visible columns";
+        public string SelectVisibleColumnsAriaLabel { get; set; } = "select visible columns";
 
         /// <summary>
         /// Gets or sets the column logical filter value aria label text.
         /// </summary>
         /// <value>The the column logical filter value aria label text.</value>
         [Parameter]
-        public string LogicalOperatorArialLabel { get; set; } = " logical filter operator ";
+        public string LogicalOperatorAriaLabel { get; set; } = " logical filter operator ";
 
         /// <summary>
         /// Gets or sets the column filter value aria label text.
         /// </summary>
         /// <value>The the column filter value aria label text.</value>
         [Parameter]
-        public string FilterOperatorArialLabel { get; set; } = " filter operator ";
+        public string FilterOperatorAriaLabel { get; set; } = " filter operator ";
 
         /// <summary>
         /// Gets or sets the column filter value aria label text.
         /// </summary>
         /// <value>The the column filter value aria label text.</value>
         [Parameter]
-        public string SecondFilterOperatorArialLabel { get; set; } = " second filter operator ";
+        public string SecondFilterOperatorAriaLabel { get; set; } = " second filter operator ";
 
         /// <summary>
         /// Gets or sets the column filter value aria label text.
         /// </summary>
         /// <value>The the column filter value aria label text.</value>
         [Parameter]
-        public string FilterValueArialLabel { get; set; } = " filter value ";
+        public string FilterValueAriaLabel { get; set; } = " filter value ";
 
         /// <summary>
         /// Gets or sets the column filter value aria label text.
         /// </summary>
         /// <value>The the column filter value aria label text.</value>
         [Parameter]
-        public string SecondFilterValueArialLabel { get; set; } = " second filter value ";
+        public string SecondFilterValueAriaLabel { get; set; } = " second filter value ";
 
         /// <summary>
         /// Gets or sets a value indicating whether user can pick all columns in column picker.

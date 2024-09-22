@@ -38,6 +38,19 @@ namespace Radzen.Blazor
         [CascadingParameter]
         public RadzenDataGridColumn<TItem> Parent { get; set; }
 
+        /// <summary>
+        /// Specifies wether CheckBoxList filter list virtualization is enabled. Set to <c>true</c> by default.
+        /// </summary>
+        [Parameter]
+        public bool AllowCheckBoxListVirtualization { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the column filter mode.
+        /// </summary>
+        /// <value>The column filter mode.</value>
+        [Parameter]
+        public FilterMode? FilterMode { get; set; }
+
         internal void RemoveColumn(RadzenDataGridColumn<TItem> column)
         {
             if (Grid.childColumns.Contains(column))
@@ -120,7 +133,7 @@ namespace Radzen.Blazor
             {
                 Grid.AddColumn(this);
 
-                var canSetFilterPropertyType = Grid.FilterMode == FilterMode.CheckBoxList && FilterTemplate == null;
+                var canSetFilterPropertyType = (FilterMode ?? Grid.FilterMode) == Radzen.FilterMode.CheckBoxList && FilterTemplate == null;
 
                 if (canSetFilterPropertyType)
                 {
@@ -567,7 +580,9 @@ namespace Radzen.Blazor
         {
             var value = propertyValueGetter != null && !string.IsNullOrEmpty(Property) && !Property.Contains('.') ? propertyValueGetter(item) : !string.IsNullOrEmpty(Property) ? PropertyAccess.GetValue(item, Property) : "";
 
-            if ((PropertyAccess.IsEnum(FilterPropertyType) || PropertyAccess.IsNullableEnum(FilterPropertyType)) && value != null)
+
+            if ((PropertyAccess.IsEnum(FilterPropertyType) || PropertyAccess.IsNullableEnum(FilterPropertyType) ||
+                ((FilterMode ?? Grid.FilterMode) == Radzen.FilterMode.CheckBoxList && (value as Enum) != null)) && value != null)
             {
                 var enumValue = value as Enum;
                 if (enumValue != null)
@@ -945,9 +960,9 @@ namespace Radzen.Blazor
                 }
             }
 
-            if (parameters.DidParameterChange(nameof(FilterOperator), FilterOperator))
+            if (parameters.DidParameterChange(nameof(FilterOperator), FilterOperator) || _filterOperator != null)
             {
-                filterOperator = parameters.GetValueOrDefault<FilterOperator>(nameof(FilterOperator));
+                filterOperator = _filterOperator ?? parameters.GetValueOrDefault<FilterOperator>(nameof(FilterOperator));
             }
 
             if (parameters.DidParameterChange(nameof(SecondFilterValue), SecondFilterValue))
@@ -1140,12 +1155,23 @@ namespace Radzen.Blazor
             LogicalFilterOperator = default(LogicalFilterOperator);
         }
 
+        FilterOperator? _filterOperator;
         /// <summary>
         /// Gets or sets the filter operator.
         /// </summary>
         /// <value>The filter operator.</value>
         [Parameter]
-        public FilterOperator FilterOperator { get; set; }
+        public FilterOperator FilterOperator 
+        {
+            get
+            {
+                return _filterOperator ?? FilterOperator.Equals;
+            }
+            set
+            {
+                _filterOperator = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the second filter operator.
