@@ -116,6 +116,7 @@ namespace RadzenBlazorDemos
                 {
                     Name = "Borders",
                     Path = "borders",
+                    Updated = true,
                     Title = "Blazor Border Utilities | Free UI Components by Radzen",
                     Description = "Border styles and utility CSS classes for borders available in Radzen Blazor Components library.",
                     Icon = "&#xe3c6",
@@ -123,12 +124,32 @@ namespace RadzenBlazorDemos
                 },
                 new Example
                 {
-                    Name = "Shadows",
-                    Path = "shadows",
-                    Title = "Blazor Shadow Utilities | Free UI Components by Radzen",
-                    Description = "Shadow styles and utility CSS classes for shadows available in Radzen Blazor Components library.",
-                    Icon = "&#xe9df",
-                    Tags = new [] { "shadow", "utility", "css", "var"}
+                    Name = "Breakpoints",
+                    Title = "Blazor Responsive Breakpoints | Free UI Components by Radzen",
+                    Description = "Responsive breakpoints are used to adjust the layout based on the screen size of the device in use.",
+                    Path = "breakpoints",
+                    Icon = "&#xe1b1",
+                    Tags = new [] { "breakpoints", "spacing", "margin", "padding", "gutter", "gap", "utility", "css", "responsive", "layout"}
+                },
+                new Example
+                {
+                    Name = "Display",
+                    Title = "Blazor Display Utilities | Free UI Components by Radzen",
+                    New = true,
+                    Description = "Display styles and utility CSS classes available in Radzen Blazor Components library.",
+                    Path = "display",
+                    Icon = "&#xf023",
+                    Tags = new [] { "display", "hide", "show", "flex", "block", "inline", "utility", "css", "var"}
+                },
+                new Example
+                {
+                    Name = "Overflow",
+                    Title = "Blazor Content Overflow Utilities | Free UI Components by Radzen",
+                    New = true,
+                    Description = "Overflow styles and utility CSS classes available in Radzen Blazor Components library.",
+                    Path = "overflow",
+                    Icon = "&#xf829",
+                    Tags = new [] { "overflow", "content", "width", "height", "size", "wrap", "hide", "hidden", "visible", "utility", "css", "var"}
                 },
                 new Example
                 {
@@ -141,12 +162,22 @@ namespace RadzenBlazorDemos
                 },
                 new Example
                 {
-                    Name = "Breakpoints",
-                    Title = "Blazor Responsive Breakpoints | Free UI Components by Radzen",
-                    Description = "Responsive breakpoints are used to adjust the layout based on the screen size of the device in use.",
-                    Path = "breakpoints",
-                    Icon = "&#xe1b1",
-                    Tags = new [] { "breakpoints", "spacing", "margin", "padding", "gutter", "gap", "utility", "css", "responsive", "layout"}
+                    Name = "Shadows",
+                    Path = "shadows",
+                    Title = "Blazor Shadow Utilities | Free UI Components by Radzen",
+                    Description = "Shadow styles and utility CSS classes for shadows available in Radzen Blazor Components library.",
+                    Icon = "&#xe9df",
+                    Tags = new [] { "shadow", "utility", "css", "var"}
+                },
+                new Example
+                {
+                    Name = "Sizing",
+                    Title = "Blazor Sizing Utilities | Free UI Components by Radzen",
+                    New = true,
+                    Description = "Sizing styles and utility CSS classes for width and height available in Radzen Blazor Components library.",
+                    Path = "sizing",
+                    Icon = "&#xf730",
+                    Tags = new [] { "sizing", "width", "height", "size", "max", "min", "utility", "css", "var"}
                 },
                 new Example
                 {
@@ -376,6 +407,14 @@ namespace RadzenBlazorDemos
                             Title = "Blazor DataGrid Component - Excel like filtering with OData | Free UI Components by Radzen",
                             Description = "RadzenDataGrid Excel like filtering with OData.",
                             Tags = new [] { "filter", "excel", "grid", "datagrid", "table", "menu", "checkbox", "list", "odata" }
+                        },
+                        new Example
+                        {
+                            Name = "Mixed Mode",
+                            Path = "datagrid-mixed-filter",
+                            Title = "Blazor DataGrid Component -  Excel like and Advanced mixed Filter Mode | Free UI Components by Radzen",
+                            Description = "RadzenDataGrid Excel like and advanced mixed mode filtering.",
+                            Tags = new [] { "filter", "advanced", "grid", "datagrid", "table"}
                         },
                         new Example
                         {
@@ -892,6 +931,14 @@ namespace RadzenBlazorDemos
                             Description = "This example demonstrates context menu in RadzenTree.",
                             Path = "tree-contextmenu",
                             Tags = new [] { "tree", "treeview", "nodes", "context", "menu" },
+                        },
+                        new Example
+                        {
+                            Name = "Refreshing tree data-binding",
+                            Title = "Blazor Tree Component - Refreshing tree data-binding | Free UI Components by Radzen",
+                            Description = "This example demonstrates how to refresh a lazily loaded RadzenTree.",
+                            Path = "tree-data-binding-refresh",
+                            Tags = new [] { "tree", "treeview", "nodes" },
                         }
                     }
                 },
@@ -1591,6 +1638,14 @@ namespace RadzenBlazorDemos
                     Path = "googlemap",
                     Description = "Demonstration and configuration of Radzen Blazor Google Map component.",
                     Icon = "&#xe55b"
+                },
+                new Example
+                {
+                    Name = "SSRS Viewer",
+                    Path = "ssrsviewer",
+                    Description = "Demonstration and configuration of Radzen SSRS Viewer Radzen Blazor Arc Gauge component.",
+                    Icon = "&#xe9e4",
+                    Tags = new [] { "report", "ssrs" }
                 },
             }
         },
