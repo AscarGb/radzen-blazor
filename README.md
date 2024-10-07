@@ -1,3 +1,5 @@
+https://www.nuget.org/packages/RadzenFork.Blazor/
+
 This is a fork of the radzen-blazor library with new features that are not in the main library and without which it is impossible to do some things.
 
 ## Features:
