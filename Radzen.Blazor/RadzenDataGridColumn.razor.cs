@@ -75,6 +75,8 @@ namespace Radzen.Blazor
             }
         }
 
+        internal IEnumerable<RadzenDataGridColumn<TItem>> VisibleColumns => ColumnsCollection.Where(c => c.GetVisible());
+
         internal int GetLevel()
         {
             int i = 0;
@@ -93,11 +95,11 @@ namespace Radzen.Blazor
             if (!Grid.AllowCompositeDataCells && isDataCell || Columns == null)
                 return 1;
 
-            var span = ColumnsCollection.Concat(ColumnsCollection.SelectManyRecursive(c => c.ColumnsCollection)).Sum(c => c.ColumnsCollection.Count())
-                - ColumnsCollection.SelectManyRecursive(c => c.ColumnsCollection).Count(c => c.ColumnsCollection.Any())
-                + ColumnsCollection.Where(c => c.ColumnsCollection.Count() == 0).Count();
+            var span = VisibleColumns.Concat(VisibleColumns.SelectManyRecursive(c => c.VisibleColumns)).Sum(c => c.VisibleColumns.Count())
+                - VisibleColumns.SelectManyRecursive(c => c.VisibleColumns).Count(c => c.VisibleColumns.Any())
+                + VisibleColumns.Where(c => c.VisibleColumns.Count() == 0).Count();
 
-            return span != 0 ? span : ColumnsCollection.Count;
+            return span != 0 ? span : VisibleColumns.Count();
         }
 
         internal int GetRowSpan(bool isDataCell = false)
@@ -139,7 +141,11 @@ namespace Radzen.Blazor
                 {
                     if (Type == null)
                     {
-                        _filterPropertyType = typeof(IEnumerable<object>);
+                        var fp = GetFilterProperty();
+                        var pt = !string.IsNullOrEmpty(fp) ?
+                                PropertyAccess.GetPropertyType(typeof(TItem), fp) : typeof(object);
+
+                        _filterPropertyType = typeof(IEnumerable<>).MakeGenericType(pt);
                     }
 
                     if (GetFilterOperator() == FilterOperator.Equals)
@@ -892,7 +898,7 @@ namespace Radzen.Blazor
             {
                 filterValue = parameters.GetValueOrDefault<object>(nameof(FilterValue));
 
-                if (FilterTemplate != null)
+                if (FilterTemplate != null || FilterValueTemplate != null)
                 {
                     FilterValue = filterValue;
                     Grid.SaveSettings();
@@ -916,7 +922,7 @@ namespace Radzen.Blazor
             {
                 secondFilterValue = parameters.GetValueOrDefault<object>(nameof(SecondFilterValue));
 
-                if (FilterTemplate != null)
+                if (FilterTemplate != null || SecondFilterValueTemplate != null)
                 {
                     SecondFilterValue = secondFilterValue;
                     Grid.SaveSettings();
@@ -960,7 +966,7 @@ namespace Radzen.Blazor
                 }
             }
 
-            if (parameters.DidParameterChange(nameof(FilterOperator), FilterOperator) || _filterOperator != null)
+            if (filterOperator == null && (parameters.DidParameterChange(nameof(FilterOperator), FilterOperator) || _filterOperator != null))
             {
                 filterOperator = _filterOperator ?? parameters.GetValueOrDefault<FilterOperator>(nameof(FilterOperator));
             }
@@ -1052,7 +1058,8 @@ namespace Radzen.Blazor
 
             if (PropertyAccess.IsEnum(FilterPropertyType) || (PropertyAccess.IsNullableEnum(FilterPropertyType)))
             {
-                value = value is not null ? (int)value : null;
+                Type enumType = Enum.GetUnderlyingType(Nullable.GetUnderlyingType(FilterPropertyType) ?? FilterPropertyType);
+                value = value is not null ? Convert.ChangeType(value, enumType) : null;
             }
 
             if (isFirst)
@@ -1138,21 +1145,22 @@ namespace Radzen.Blazor
         /// </summary>
         public void ClearFilters()
         {
-            ClearFilterValues();
-            SetFilterValue(null);
-            SetFilterValue(null, false);
-            SetFilterOperator(null);
-            SetSecondFilterOperator(null);
-
-            FilterValue = null;
-            SecondFilterValue = null;
-            FilterOperator = FilterOperator == FilterOperator.Custom
+            var fo = FilterOperator == FilterOperator.Custom
                 ? FilterOperator.Custom
                 : typeof(System.Collections.IEnumerable).IsAssignableFrom(FilterPropertyType)
                     ? !string.IsNullOrEmpty(FilterProperty) && FilterProperty != Property ? FilterOperator.In : FilterOperator.Contains
                     : default(FilterOperator);
-            SecondFilterOperator = default(FilterOperator);
+
+            SetFilterOperator(fo);
+            SetSecondFilterOperator(null);
+
+            filterValue = null;
+            secondFilterValue = null;
+
+            ClearFilterValues();
+
             LogicalFilterOperator = default(LogicalFilterOperator);
+
         }
 
         FilterOperator? _filterOperator;
@@ -1170,6 +1178,24 @@ namespace Radzen.Blazor
             set
             {
                 _filterOperator = value;
+            }
+        }
+
+        IEnumerable<FilterOperator> _filterOperators;
+        /// <summary>
+        /// Gets or sets the filter operators.
+        /// </summary>
+        /// <value>The filter operators.</value>
+        [Parameter]
+        public IEnumerable<FilterOperator> FilterOperators
+        {
+            get
+            {
+                return _filterOperators;
+            }
+            set
+            {
+                _filterOperators = value;
             }
         }
 
@@ -1264,6 +1290,8 @@ namespace Radzen.Blazor
         /// </summary>
         public virtual IEnumerable<FilterOperator> GetFilterOperators()
         {
+            if (FilterOperators != null) return FilterOperators;
+
             if (PropertyAccess.IsEnum(FilterPropertyType) || FilterPropertyType == typeof(bool))
                 return new FilterOperator[] { FilterOperator.Equals, FilterOperator.NotEquals };
 
@@ -1358,6 +1386,10 @@ namespace Radzen.Blazor
                     return "= ''";
                 case FilterOperator.IsNotEmpty:
                     return "≠ ''";
+                case FilterOperator.In:
+                    return "∈";
+                case FilterOperator.NotIn:
+                    return "∉";
                 default:
                     return $"{filterOperator}";
             }

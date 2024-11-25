@@ -203,6 +203,13 @@ namespace Radzen.Blazor
         public bool ShowAdd { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets preserving the selected row index on pageing.
+        /// </summary>
+        /// <value>Row selection preservation on pageing.</value>
+        [Parameter]
+        public bool PreserveRowSelectionOnPaging { get; set; } = false;
+
+        /// <summary>
         /// Gets or sets the page numbers count.
         /// </summary>
         /// <value>The page numbers count.</value>
@@ -390,7 +397,7 @@ namespace Radzen.Blazor
             if (!LoadData.HasDelegate)
             {
                 searchText = null;
-                await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize });
+                await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize, OrderBy = "" });
             }
         }
 
@@ -405,7 +412,7 @@ namespace Radzen.Blazor
 
             if (!string.IsNullOrEmpty(searchText) && !LoadData.HasDelegate)
             {
-                await OnLoadData(new Radzen.LoadDataArgs() { Skip = skip, Top = PageSize });
+                await OnLoadData(new Radzen.LoadDataArgs() { Skip = skip, Top = PageSize, OrderBy = "" });
             }
         }
 
@@ -415,7 +422,7 @@ namespace Radzen.Blazor
         public async Task Reload()
         {
             searchText = null;
-            await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize });
+            await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize, OrderBy = "" });
         }
 
         private string GetPropertyFilterExpression(string property, string filterCaseSensitivityOperator)
@@ -440,6 +447,7 @@ namespace Radzen.Blazor
         }
 
         string prevSearch;
+        string prevOrder = "";
         int? skip;
         async Task OnLoadData(LoadDataArgs args)
         {
@@ -512,11 +520,28 @@ namespace Radzen.Blazor
                 pagedData = await Task.FromResult(QueryableExtension.ToList(query.Skip(skip.HasValue ? skip.Value : 0).Take(args.Top.HasValue ? args.Top.Value : PageSize)).Cast<object>());
 
                 _internalView = query;
+
+                if (prevOrder != args.OrderBy)
+                {
+                    prevOrder = args.OrderBy;
+                    await JSRuntime.InvokeVoidAsync("eval");
+                }
             }
             else
             {
                 await LoadData.InvokeAsync(new Radzen.LoadDataArgs() { Skip = skip, Top = args.Top, OrderBy = args.OrderBy, Filter = searchText });
             }
+            
+            if(PreserveRowSelectionOnPaging && selectedIndex != -1)
+            {	
+                var items = (LoadData.HasDelegate ? Data != null ? Data : Enumerable.Empty<object>() : (pagedData != null ? pagedData : Enumerable.Empty<object>())).OfType<object>().ToList();
+                selectedIndex = Math.Clamp(selectedIndex, 0, items.Count - 1);
+                
+                await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", grid.GridId(), "ArrowDown", selectedIndex - 1, null);
+
+                await grid.OnRowSelect(items[selectedIndex], false);
+            }
+
         }
 
         IEnumerable _internalView = Enumerable.Empty<object>();
@@ -629,6 +654,8 @@ namespace Radzen.Blazor
             if (Disabled)
                 return;
 
+            var canRequest = searchText != null;
+
             searchText = null;
             internalValue = default(TValue);
             selectedItem = null;
@@ -644,7 +671,10 @@ namespace Radzen.Blazor
                 await grid.SelectRow(null);
             }
 
-            await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize });
+            if (canRequest)
+            {
+                await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize, OrderBy = "" });
+            }
 
             StateHasChanged();
         }
@@ -669,7 +699,7 @@ namespace Radzen.Blazor
                     if (shouldChange)
                     {
                         selectedIndex = newSelectedIndex;
-                        await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", grid.GridId(), key, selectedIndex - 1, null);
+                        await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", grid.GridId(), key, selectedIndex + (key == "ArrowUp" ? 1 : -1), null);
                         await grid.OnRowSelect(items[selectedIndex], false);
                     }
 

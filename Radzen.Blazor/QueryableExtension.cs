@@ -152,13 +152,14 @@ namespace Radzen
                     }
                     else if (PropertyAccess.IsEnum(column.FilterPropertyType) || PropertyAccess.IsNullableEnum(column.FilterPropertyType))
                     {
+                        Type enumType = Enum.GetUnderlyingType(Nullable.GetUnderlyingType(column.FilterPropertyType) ?? column.FilterPropertyType);
                         if (v != null)
                         {
-                            value = ((int)v).ToString();
+                            value = Convert.ChangeType(v, enumType).ToString();
                         }
                         if (sv != null)
                         {
-                            secondValue = ((int)sv).ToString();
+                            secondValue = Convert.ChangeType(sv, enumType).ToString();
                         }
                     }
                     else if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string))
@@ -166,13 +167,33 @@ namespace Radzen
                         var enumerableValue = ((IEnumerable)(v != null ? v : Enumerable.Empty<object>())).AsQueryable();
                         var enumerableSecondValue = ((IEnumerable)(sv != null ? sv : Enumerable.Empty<object>())).AsQueryable();
 
-                        string baseType = column.FilterPropertyType.GetGenericArguments().Count() == 1 ? column.FilterPropertyType.GetGenericArguments()[0].Name : "";
 
+                        string baseType = column.FilterPropertyType.GetGenericArguments().Count() == 1
+                                              ? column.FilterPropertyType.GetGenericArguments()[0].Name
+                                              : "";
                         var enumerableValueAsString = "new " + baseType + "[]{" + String.Join(",",
-                                (enumerableValue.ElementType == typeof(string) ? enumerableValue.Cast<string>().Select(i => $@"""{i}""").Cast<object>() : enumerableValue.Cast<object>())) + "}";
+                                                          (enumerableValue.ElementType == typeof(string)
+                                                               ? enumerableValue.Cast<string>().Select(i => $@"""{i}""")
+                                                                   .Cast<object>()
+                                                               : PropertyAccess.IsDate(enumerableValue.ElementType)
+                                                                   ? enumerableValue.Cast<object>()
+                                                                       .Select(i => $@"DateTime.Parse(""{i}"")")
+                                                                       .Cast<object>()
+                                                                   : enumerableValue.Cast<object>()
+                                                          )) + "}";
+
 
                         var enumerableSecondValueAsString = "new " + baseType + "[]{" + String.Join(",",
-                                (enumerableSecondValue.ElementType == typeof(string) ? enumerableSecondValue.Cast<string>().Select(i => $@"""{i}""").Cast<object>() : enumerableSecondValue.Cast<object>())) + "}";
+                                                                (enumerableSecondValue.ElementType == typeof(string)
+                                                                     ? enumerableSecondValue.Cast<string>()
+                                                                         .Select(i => $@"""{i}""").Cast<object>()
+                                                                     : PropertyAccess.IsDate(
+                                                                         enumerableSecondValue.ElementType)
+                                                                         ? enumerableSecondValue.Cast<object>()
+                                                                             .Select(i => $@"DateTime.Parse(""{i}"")")
+                                                                             .Cast<object>()
+                                                                         : enumerableSecondValue.Cast<object>()
+                                                                )) + "}";
 
                         if (enumerableValue?.Any() == true)
                         {
@@ -197,7 +218,7 @@ namespace Radzen
                             {
                                 if (columnFilterOperator == FilterOperator.Contains || columnFilterOperator == FilterOperator.DoesNotContain)
                                 {
-                                    whereList.Add($@"{(columnFilterOperator == FilterOperator.DoesNotContain ? "!" : "")}({enumerableValueAsString}).Contains({property})");
+                                    whereList.Add($@"{property} {(columnFilterOperator == FilterOperator.DoesNotContain ? "not " : "in")} {enumerableValueAsString}");
                                 }
                                 else if (columnFilterOperator == FilterOperator.In || columnFilterOperator == FilterOperator.NotIn)
                                 {
@@ -432,10 +453,12 @@ namespace Radzen
                 var v = column.FilterValue;
                 var enumerableValue = ((IEnumerable)(v ?? Enumerable.Empty<object>())).AsQueryable();
 
-                string baseType = columnType.GetGenericArguments().Count() == 1 ? columnType.GetGenericArguments()[0].Name : "";
-
-                var enumerableValueAsString = "new " + baseType + "[]{" + String.Join(",",
-                        (enumerableValue.ElementType == typeof(string) ? enumerableValue.Cast<string>().Select(i => $@"""{i}""").Cast<object>() : enumerableValue.Cast<object>())) + "}";
+                var enumerableValueAsString = "(" + String.Join(",",
+                                (enumerableValue.ElementType == typeof(string) ?
+                                        enumerableValue.Cast<string>().Select(i => $@"""{i}""").Cast<object>()
+                                            : PropertyAccess.IsDate(enumerableValue.ElementType) ?
+                                                enumerableValue.Cast<object>().Select(i => $@"DateTime(""{i}"")").Cast<object>()
+                                                    : enumerableValue.Cast<object>())) + ")";
 
 
                 if (enumerableValue?.Any() == true)
@@ -447,7 +470,7 @@ namespace Radzen
 
                     if (columnFilterOperator == FilterOperator.Contains || columnFilterOperator == FilterOperator.DoesNotContain)
                     {
-                        return $@"{(columnFilterOperator == FilterOperator.DoesNotContain ? "!" : "")}({enumerableValueAsString}).Contains({property})";
+                        return $@"{property} {(columnFilterOperator == FilterOperator.DoesNotContain ? "not " : "in")} {enumerableValueAsString}";
                     }
                     else if (columnFilterOperator == FilterOperator.In || columnFilterOperator == FilterOperator.NotIn)
                     {
@@ -647,7 +670,9 @@ namespace Radzen
             var value = IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string)
                 ? null
                 : (string)Convert.ChangeType(filterValue is DateTimeOffset ?
-                            ((DateTimeOffset)filterValue).UtcDateTime : filterValue, typeof(string), CultureInfo.InvariantCulture);
+                            ((DateTimeOffset)filterValue).UtcDateTime : filterValue is DateOnly ?
+                                ((DateOnly)filterValue).ToString("yyy-MM-dd", CultureInfo.InvariantCulture) : 
+                                    filterValue, typeof(string), CultureInfo.InvariantCulture);
 
             if (column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive && column.FilterPropertyType == typeof(string))
             {
@@ -762,7 +787,8 @@ namespace Radzen
             else if (column.FilterPropertyType == typeof(DateTime) ||
                     column.FilterPropertyType == typeof(DateTime?) ||
                     column.FilterPropertyType == typeof(DateTimeOffset) ||
-                    column.FilterPropertyType == typeof(DateTimeOffset?))
+                    column.FilterPropertyType == typeof(DateTimeOffset?) ||
+                    column.FilterPropertyType == typeof(DateOnly?))
             {
                 if (columnFilterOperator == FilterOperator.IsNull || columnFilterOperator == FilterOperator.IsNotNull)
                 {
@@ -774,7 +800,7 @@ namespace Radzen
                 }
                 else
                 {
-                    return $"{property} {odataFilterOperator} {DateTime.Parse(value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind).ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)}";
+                    return $"{property} {odataFilterOperator} {(column.FilterPropertyType == typeof(DateOnly?) ? value : DateTime.Parse(value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind).ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture))}";
                 }
             }
             else if (column.FilterPropertyType == typeof(Guid) || column.FilterPropertyType == typeof(Guid?))
@@ -923,7 +949,8 @@ namespace Radzen
                                 }
                                 else
                                 {
-                                    whereList.Add($@"(@{index}).Contains({property})", new object[] { column.GetFilterValue() });
+                                    var fp = column.GetFilterProperty().Contains(".") ? $"np({column.GetFilterProperty()})" : column.GetFilterProperty();
+                                    whereList.Add($@"(@{index}).Contains({fp})", new object[] { column.GetFilterValue() });
                                 }
                             }
                             else
@@ -1122,8 +1149,16 @@ namespace Radzen
 
                     if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) && comparison == "Contains")
                     {
-                        filterExpressions.Add($@"(@{index}).Contains({property})");
-                        filterValues.Add(new object[] { filter.FilterValue  });
+                        if (column.Property != column.FilterProperty && !string.IsNullOrEmpty(column.FilterProperty))
+                        {
+                            filterExpressions.Add($@"{column.Property}.Any(i => i.{column.FilterProperty}{filterCaseSensitivityOperator}.Contains(@{index}{filterCaseSensitivityOperator}))");
+                            filterValues.Add(new object[] { filter.FilterValue });
+                        }
+                        else
+                        {
+                            filterExpressions.Add($@"(@{index}).Contains({property})");
+                            filterValues.Add(new object[] { filter.FilterValue });
+                        }
                     }
                     else
                     {
@@ -1142,8 +1177,16 @@ namespace Radzen
 
                     if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) && comparison == "DoesNotContain")
                     {
-                        filterExpressions.Add($@"!(@{index}).Contains({property})");
-                        filterValues.Add(new object[] { filter.FilterValue });
+                        if (column.Property != column.FilterProperty && !string.IsNullOrEmpty(column.FilterProperty))
+                        {
+                            filterExpressions.Add($@"!{column.Property}.Any(i => i.{column.FilterProperty}{filterCaseSensitivityOperator}.Contains(@{index}{filterCaseSensitivityOperator}))");
+                            filterValues.Add(new object[] { filter.FilterValue });
+                        }
+                        else
+                        {
+                            filterExpressions.Add($@"!(@{index}).Contains({property})");
+                            filterValues.Add(new object[] { filter.FilterValue });
+                        }
                     }
                     else
                     {
@@ -1162,6 +1205,21 @@ namespace Radzen
 
                         index++;
                     }
+                    else if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) &&
+                        column.Property != column.FilterProperty && !string.IsNullOrEmpty(column.FilterProperty))
+                    {
+                        filterExpressions.Add($@"{(comparison == "NotIn" ? "!" : "")}{column.Property}.Any(i => i.{column.FilterProperty} in @{index})");
+                        filterValues.Add(new object[] { filter.FilterValue });
+
+                        index++;
+                    }
+                }
+                else if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) && column.Property != column.FilterProperty && !string.IsNullOrEmpty(column.FilterProperty))
+                {
+                    filterExpressions.Add($@"{column.Property}.Any(i => i.{column.FilterProperty}{filterCaseSensitivityOperator} {comparison} @{index}{filterCaseSensitivityOperator})");
+                    filterValues.Add(new object[] { filter.FilterValue });
+
+                    index++;
                 }
                 else if (!(IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string)))
                 {
