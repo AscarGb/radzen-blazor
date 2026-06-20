@@ -1,3 +1,5 @@
+#nullable enable
+using System;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -163,6 +165,12 @@ namespace Radzen.Blazor
         /// <value>The visibility of the splitter bar.</value>
         [Parameter]
         public bool BarVisible { get; set; } = true;
+        
+        /// <summary>
+        /// Delegate for getting index of current pane (set UseGetIndex=true in RadzenSplitter)
+        /// </summary>
+        [Parameter]
+        public Func<int>? GetIndex { get; set; }
 
         /// <summary>
         /// Gets or sets the splitter.

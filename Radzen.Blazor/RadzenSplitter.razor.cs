@@ -46,15 +46,13 @@ namespace Radzen.Blazor
     /// </example>
     public partial class RadzenSplitter : RadzenComponent
     {
-        private int sizeAutoPanes;
-
         /// <summary>
         /// Gets or sets the panes to display within the splitter.
         /// Each RadzenSplitterPane represents one resizable section of the splitter.
         /// </summary>
         /// <value>The panes render fragment containing RadzenSplitterPane definitions.</value>
         [Parameter]
-        public RenderFragment? ChildContent { get; set; }
+        public RenderFragment ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets the layout direction of the splitter.
@@ -65,6 +63,11 @@ namespace Radzen.Blazor
         public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
         internal List<RadzenSplitterPane> Panes = new List<RadzenSplitterPane>();
+        /// <summary>
+        /// Use GetIndex in panes
+        /// </summary>
+        [Parameter]
+        public bool UseGetIndex { get; set; }
 
         /// <summary>
         /// Adds the pane.
@@ -72,27 +75,42 @@ namespace Radzen.Blazor
         /// <param name="pane">The pane.</param>
         public void AddPane(RadzenSplitterPane pane)
         {
-            ArgumentNullException.ThrowIfNull(pane);
-            if (Panes.IndexOf(pane) != -1 || !pane.Visible)
+            Panes.Remove(pane);
+
+            if (!pane.Visible)
                 return;
 
             if (string.IsNullOrWhiteSpace(pane.Size))
-            {
-                //no size defined
                 pane.SizeAuto = true;
-                sizeAutoPanes++;
-            }
 
-            pane.Index = Panes.Count;
             Panes.Add(pane);
 
-            foreach (var iPane in Panes)
-            {
-                if (!iPane.SizeAuto)
-                    continue;
+            if (UseGetIndex)
+                UpdateIndexesViaDelegate();
+            else
+                UpdateIndexes();
 
-                iPane.SizeRuntine = (100 / sizeAutoPanes) + "%";
-            }
+            var sizeAutoPanes = Panes.Count(static a => a.SizeAuto);
+
+            foreach (var iPane in Panes.Where(static iPane => iPane.SizeAuto))
+                iPane.SizeRuntine = $"{100 / sizeAutoPanes}%";
+        }
+
+        private void UpdateIndexesViaDelegate()
+        {
+            foreach (var p in Panes)
+                p.Index = p.GetIndex?.Invoke() ?? 
+                        throw new InvalidOperationException("Expects GetIndex parameter");
+
+            Panes = Panes.OrderBy(static a => a.Index).ToList();
+        }
+        
+        private void UpdateIndexes()
+        {
+            var index = 0;
+
+            foreach (var p in Panes)
+                p.Index = index++;
         }
 
         /// <summary>
@@ -103,6 +121,11 @@ namespace Radzen.Blazor
         {
             if (Panes.Remove(pane))
             {
+                if (UseGetIndex)
+                    UpdateIndexesViaDelegate();
+                else
+                    UpdateIndexes();
+
                 try
                 {
                     InvokeAsync(StateHasChanged);
